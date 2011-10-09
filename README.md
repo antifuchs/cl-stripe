@@ -59,6 +59,17 @@ This retrieves:
 case-normalized to lower case, and hyphens replaced with underscores),
 or as strings (which will be used verbatim).
 
+## API Keys
+
+Your stripe API key is a string you get from the web interface. The
+default is a test key that the Stripe team provide in their
+documentation. You'll probably want to set this to something else -
+`(makunbound '*api-key*)` to be extra safe - especially if you're using
+this in production.
+
+You can set your API key with the `set-api-key` function, or you can
+dynamically bind the `*api-key*` variable to it.
+
 ## That's it!
 
 Have fun with this library! I hope you can make something useful with
