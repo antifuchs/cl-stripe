@@ -173,7 +173,7 @@
 
 
 ;;; Charges
-(def-api-call :create (:charge :http-resource :charges)
+(def-api-call :create (:charge :http-resource :charges :return-id t)
   (amount currency customer card description)
   "https://stripe.com/api/docs#create_charge")
 
@@ -188,7 +188,7 @@
 
 
 ;;; Customers
-(def-api-call :create (:customer :http-resource :customers)
+(def-api-call :create (:customer :http-resource :customers :return-id t)
   (card coupon email description plan trial-end)
   "https://stripe.com/api/docs#create_customer")
 
@@ -206,7 +206,7 @@
 
 
 ;;; Card Tokens
-(def-api-call :create :token (card amount currency)
+(def-api-call :create (:token :http-resource :tokens :return-id t) (card amount currency)
               "https://stripe.com/api/docs#create_token")
 
 (def-api-call :retrieve (:token :id t) ()
@@ -250,7 +250,7 @@
 
 
 ;;; Invoice items
-(def-api-call :create (:invoice-item :http-resource :invoice-items)
+(def-api-call :create (:invoice-item :http-resource :invoice-items :return-id t)
   (customer amount currency description)
   "https://stripe.com/api/docs#create_invoiceitem")
 
