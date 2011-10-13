@@ -12,7 +12,7 @@ API from Common Lisp and should nicely present results to you.
 ## Conventions
 
 All API functions (and data structure accessors) are exported from the
-`cl-stripe` package.
+`stripe` package.
 
 The [Stripe HTTP API](https://stripe.com/api/docs) has a few conventions, and so does Common Lisp. To
 get the two to talk and not cause inconvenience to you, I've
@@ -20,7 +20,7 @@ implemented a few conventions on the cl-stripe side:
 
 * Underscores in the HTTP API (e.g., `trial_end`) become hyphens in
   the CL API (e.g., `trial-end`).
-* All responses are returned as cl-stripe:sstruct objects, which are
+* All responses are returned as `stripe:sstruct` objects, which are
   nicely-printing wrappers around st-json:jso (see below).
 * `card` parameters can be a string to specify a token or a
   [plist](http://www.lispworks.com/documentation/HyperSpec/Body/26_glo_p.htm#property_list)
@@ -61,14 +61,13 @@ or as strings (which will be used verbatim).
 
 ## API Keys
 
-Your stripe API key is a string you get from the web interface. The
-default is a test key that the Stripe team provide in their
-documentation. You'll probably want to set this to something else -
-`(makunbound '*api-key*)` to be extra safe - especially if you're using
-this in production.
+Your stripe API key is a string you get from your dashboard in the web
+interface. Set it to either your live or testing key (but please don't
+blame me if anything goes wrong when you use your live key). 
 
-You can set your API key with the `set-api-key` function, or you can
-dynamically bind the `*api-key*` variable to it.
+All cl-stripe api functions accept an `:api-key` keyword argument,
+which defaults to `*default-api-key*`. This variable can also be set
+using the `set-default-api-key` function.
 
 ## That's it!
 

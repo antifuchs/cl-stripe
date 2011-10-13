@@ -1,13 +1,13 @@
 ;;;; package.lisp
 
-(defpackage #:cl-stripe
+(defpackage #:stripe
   (:use #:cl #:alexandria)
   (:export #:sstruct-get
            #:sstruct->jso
            #:jso->sstruct
            
-           #:set-api-key
-           #:*api-key*
+           #:set-default-api-key
+           #:*default-api-key*
            
            #:create-charge
            #:retrieve-charge

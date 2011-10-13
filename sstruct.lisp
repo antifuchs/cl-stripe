@@ -1,4 +1,4 @@
-(in-package :cl-stripe)
+(in-package :stripe)
 
 ;;; A simple data structure for the JSON format.
 

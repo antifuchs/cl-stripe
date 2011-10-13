@@ -1,5 +1,5 @@
-(in-package :cl-stripe)
+(in-package :stripe)
 
 (defparameter *endpoint* "https://api.stripe.com")
 
-(defvar *api-key* "vtUQeOtUnYr7PGCLQ96Ul4zqpDUO4sOE")  ; the example key from the stripe api docs
+(defvar *default-api-key*)  ; the example key from the stripe api docs is "vtUQeOtUnYr7PGCLQ96Ul4zqpDUO4sOE"

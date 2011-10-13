@@ -1,11 +1,11 @@
 ;;;; cl-stripe.lisp
 
-(in-package #:cl-stripe)
+(in-package #:stripe)
 
 ;;; The basics:
 
-(defun set-api-key (key)
-  (setf *api-key* key))
+(defun set-default-api-key (key)
+  (setf *default-api-key* key))
 
 ;;; Resource access
 
@@ -71,12 +71,12 @@
   (deferror stripe-internal-error-503 503)
   (deferror stripe-internal-error-504 504))
 
-(defun issue-query (resource-name &key (method :get) id parameters)
+(defun issue-query (resource-name &key (api-key *default-api-key*) (method :get) id parameters)
   (multiple-value-bind (response-stream code headers url)
       (drakma:http-request (make-resource-url resource-name id)
                            :method method
                            :parameters parameters
-                           :basic-authorization (list *api-key* "")
+                           :basic-authorization (list api-key "")
                            :content-length t
                            :want-stream t)
     (declare (ignore headers))
@@ -128,12 +128,6 @@
         when translated-alist
           nconc translated-alist))
 
-(defun issue-id-query (&rest args)
-  (let ((result (apply #'issue-query args)))
-    (if-let (id (sstruct-get result :id))
-      (values result id)
-      result)))
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *verb-http-methods* '((:retrieve . :get)
                                       (:list . :get)
@@ -157,15 +151,17 @@
          (args (when (consp object-and-args)
                  (cdr object-and-args))))
     (destructuring-bind (&key (http-resource object) id (return-id id)) args
-      (let ((function-name (format-symbol :cl-stripe '#:~a-~a verb object)))
+      (let ((function-name (format-symbol :stripe '#:~a-~a verb object)))
         (assert (external-symbol-p function-name *package*))
        `(defun ,function-name
             (,@(when id `(id))
-             ,@(when parameters `(&rest parameters &key ,@parameters)))
+             ,@(when parameters `(&rest parameters))
+             &key ,@parameters
+             (api-key *default-api-key*))
           ,url
           (declare (ignore ,@parameters))
           (let ((result
-                 (issue-query ,http-resource ,@(when id `(:id id))
+                 (issue-query ,http-resource :api-key api-key ,@(when id `(:id id))
                               :method ,(cdr (assoc verb *verb-http-methods*))
                               ,@(when parameters
                                   `(:parameters (translate-request-parameters parameters))))))
