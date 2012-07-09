@@ -151,7 +151,7 @@
          (args (when (consp object-and-args)
                  (cdr object-and-args))))
     (destructuring-bind (&key (http-resource object) id (return-id id)) args
-      (let ((function-name (format-symbol :stripe '#:~a-~a verb object)))
+      (let ((function-name (format-symbol :stripe "~a-~a" verb object)))
         (assert (external-symbol-p function-name *package*))
        `(defun ,function-name
             (,@(when id `(id))
