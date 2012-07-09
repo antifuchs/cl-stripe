@@ -112,6 +112,9 @@
       (error "Don't know how to translate ~s to a card spec dictionary"
              key-values))
 
+    (:method ((name (eql :api-key)) (key-values t))
+      "Don't pass :api-key through, it is not a valid request parameter"
+      nil)
     (:method ((name symbol) (value string))
       (list (cons (substitute #\_ #\- (string-downcase (string name))) value)))
 
