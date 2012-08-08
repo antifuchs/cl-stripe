@@ -109,8 +109,9 @@
       (translate-request-parameter name (sstruct->jso key-values)))
     
     (:method ((name (eql :card)) (key-values t))
-      (error "Don't know how to translate ~s to a card spec dictionary"
-             key-values))
+      (if key-values 
+          (error "Don't know how to translate ~s to a card spec dictionary"
+                 key-values)))
 
     (:method ((name (eql :api-key)) (key-values t))
       "Don't pass :api-key through, it is not a valid request parameter"
@@ -122,7 +123,12 @@
       (translate-request-parameter name (write-to-string value)))
     
     (:method ((name string) (value string))
-      (list (cons name value)))))
+      (list (cons name value)))
+    (:method (name (value null))
+      "ignore keys with null values"
+      nil
+      )
+    ))
 
 (defun translate-request-parameters (parameters)
   "Translate PLIST parameters into an ALIST that drakma likes."
