@@ -39,5 +39,12 @@
            #:retrieve-invoice-item
            #:update-invoice-item
            #:delete-invoice-item
-           #:list-invoice-items))
+           #:list-invoice-items
+
+           #:stripe-error
+           #:stripe-error-request-url
+           #:stripe-error-request-method
+           #:stripe-error-request-body
+           #:stripe-error-code
+           #:stripe-error-reply))
 
