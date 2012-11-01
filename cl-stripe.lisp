@@ -80,8 +80,9 @@
                            :content-length t
                            :want-stream t)
     (declare (ignore headers))
-    (let ((json-reply (jso->sstruct (st-json:read-json response-stream))))
-      (translate-stripe-http-code code json-reply method url parameters))))
+    (with-open-stream (stream response-stream)
+      (let ((json-reply (jso->sstruct (st-json:read-json stream))))
+        (translate-stripe-http-code code json-reply method url parameters)))))
 
 (let ((card-valid-keys '("number" "exp_month" "exp_year" "cvc" "name"
                          "address_line1" "address_line2" "address_zip"
