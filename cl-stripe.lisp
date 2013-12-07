@@ -15,6 +15,8 @@
     (:refund . "/v1/charges/~a/refund")
     (:customers . "/v1/customers")
     (:customer . "/v1/customers/~a")
+    (:card . "/v1/customers/~a/cards/~a")
+    (:cards . "/v1/customers/~a/cards")
     (:subscription . "/v1/customers/~a/subscription")
     (:invoices . "/v1/invoices")
     (:upcoming-invoice . "/v1/invoices/upcoming")
@@ -26,10 +28,11 @@
     (:plans . "/v1/plans")
     (:plan . "/v1/plans/~a")))
 
-(defun make-resource-url (name &optional id)
+(defun make-resource-url (name &optional id-args)
   (alexandria:when-let ((path (cdr (assoc name *resource-url-patterns*))))
-    (if id
-        (format nil "~a~@?" *endpoint* path id)
+    (if id-args
+        (apply #'format nil "~a~@?" *endpoint* path
+               (alexandria:ensure-list id-args))
         (concatenate 'string *endpoint* path))))
 
 (define-condition stripe-error (error)
@@ -71,17 +74,18 @@
   (deferror stripe-internal-error-503 503)
   (deferror stripe-internal-error-504 504))
 
-(defun issue-query (resource-name &key (api-key *default-api-key*) (method :get) id parameters)
+(defun issue-query (resource-name &key (api-key *default-api-key*) (method :get) id-args parameters)
   (multiple-value-bind (response-stream code headers url)
-      (drakma:http-request (make-resource-url resource-name id)
+      (drakma:http-request (make-resource-url resource-name (alexandria:ensure-list id-args))
                            :method method
                            :parameters parameters
                            :basic-authorization (list api-key "")
                            :content-length t
                            :want-stream t)
     (declare (ignore headers))
-    (let ((json-reply (jso->sstruct (st-json:read-json response-stream))))
-      (translate-stripe-http-code code json-reply method url parameters))))
+    (with-open-stream (stream response-stream)
+      (let ((json-reply (jso->sstruct (st-json:read-json stream))))
+        (translate-stripe-http-code code json-reply method url parameters)))))
 
 (let ((card-valid-keys '("number" "exp_month" "exp_year" "cvc" "name"
                          "address_line1" "address_line2" "address_zip"
@@ -109,9 +113,13 @@
       (translate-request-parameter name (sstruct->jso key-values)))
     
     (:method ((name (eql :card)) (key-values t))
-      (error "Don't know how to translate ~s to a card spec dictionary"
-             key-values))
+      (if key-values 
+          (error "Don't know how to translate ~s to a card spec dictionary"
+                 key-values)))
 
+    (:method ((name (eql :api-key)) (key-values t))
+      "Don't pass :api-key through, it is not a valid request parameter"
+      nil)
     (:method ((name symbol) (value string))
       (list (cons (substitute #\_ #\- (string-downcase (string name))) value)))
 
@@ -119,7 +127,12 @@
       (translate-request-parameter name (write-to-string value)))
     
     (:method ((name string) (value string))
-      (list (cons name value)))))
+      (list (cons name value)))
+    (:method (name (value null))
+      "ignore keys with null values"
+      nil
+      )
+    ))
 
 (defun translate-request-parameters (parameters)
   "Translate PLIST parameters into an ALIST that drakma likes."
@@ -145,23 +158,25 @@
 
 (defmacro def-api-call (verb object-and-args (&rest parameters)
                         url)
-  (let* ((object (if (consp object-and-args)
-                     (car object-and-args)
-                     object-and-args))
-         (args (when (consp object-and-args)
-                 (cdr object-and-args))))
-    (destructuring-bind (&key (http-resource object) id (return-id id)) args
-      (let ((function-name (format-symbol :stripe '#:~a-~a verb object)))
+  (destructuring-bind (object . args)
+      (alexandria:ensure-list object-and-args)
+    (destructuring-bind (&key (http-resource object) id (return-id id) card-id ) args
+      (let ((card-var (when card-id `(card-id)))
+            (function-name (format-symbol :stripe "~a-~a" verb object)))
         (assert (external-symbol-p function-name *package*))
        `(defun ,function-name
             (,@(when id `(id))
+             ,@card-var
              ,@(when parameters `(&rest parameters))
              &key ,@parameters
              (api-key *default-api-key*))
           ,url
           (declare (ignore ,@parameters))
           (let ((result
-                 (issue-query ,http-resource :api-key api-key ,@(when id `(:id id))
+                 (issue-query ,http-resource
+                              :api-key api-key
+                              ,@(when id
+                                  `(:id-args (list id ,@card-var)))
                               :method ,(cdr (assoc verb *verb-http-methods*))
                               ,@(when parameters
                                   `(:parameters (translate-request-parameters parameters))))))
@@ -175,93 +190,113 @@
 ;;; Charges
 (def-api-call :create (:charge :http-resource :charges :return-id t)
   (amount currency customer card description)
-  "https://stripe.com/api/docs#create_charge")
+  "https://stripe.com/docs/api#create_charge")
 
 (def-api-call :retrieve (:charge :id t) ()
-              "https://stripe.com/api/docs#retrieve_charge")
+              "https://stripe.com/docs/api#retrieve_charge")
 
 (def-api-call :refund (:charge :http-resource :refund :id t) (amount)
-              "https://stripe.com/api/docs#refund_charge")
+              "https://stripe.com/docs/api#refund_charge")
 
 (def-api-call :list :charges (customer count offset)
-              "https://stripe.com/api/docs#list_charges")
+              "https://stripe.com/docs/api#list_charges")
 
 
 ;;; Customers
 (def-api-call :create (:customer :http-resource :customers :return-id t)
   (card coupon email description plan trial-end)
-  "https://stripe.com/api/docs#create_customer")
+  "https://stripe.com/docs/api#create_customer")
 
 (def-api-call :retrieve (:customer :id t) ()
-              "https://stripe.com/api/docs#retrieve_customer")
+              "https://stripe.com/docs/api#retrieve_customer")
 
 (def-api-call :update (:customer :id t) (card coupon email description)
-              "https://stripe.com/api/docs#update_customer")
+              "https://stripe.com/docs/api#update_customer")
 
 (def-api-call :delete (:customer :id t) ()
-              "https://stripe.com/api/docs#delete_customer")
+              "https://stripe.com/docs/api#delete_customer")
 
 (def-api-call :list :customers (count offset)
-              "https://stripe.com/api/docs#list_customers")
+              "https://stripe.com/docs/api#list_customers")
+
+;;; Cards
+(def-api-call :create (:card :id t :card-id t)
+  (number exp_month exp_year cvc name address_line1 address_line2
+   address_zip addres_state address_country)
+  "https://stripe.com/docs/api#create_card")
+
+(def-api-call :retrieve (:card :id t :card-id t) ()
+  "https://stripe.com/docs/api#retrieve_card")
+
+(def-api-call :update (:card :id t :card-id t)
+  (number exp_month exp_year cvc name address_line1 address_line2
+   address_zip addres_state address_country)
+  "https://stripe.com/docs/api#update_card")
+
+(def-api-call :delete (:card :id t :card-id t) ()
+  "https://stripe.com/docs/api#delete_card")
+
+(def-api-call :list (:cards :id t) ()
+  "https://stripe.com/docs/api#list_cards")
 
 
 ;;; Card Tokens
 (def-api-call :create (:token :http-resource :tokens :return-id t) (card amount currency)
-              "https://stripe.com/api/docs#create_token")
+              "https://stripe.com/docs/api#create_token")
 
 (def-api-call :retrieve (:token :id t) ()
-              "https://stripe.com/api/docs#retrieve_token")
+              "https://stripe.com/docs/api#retrieve_token")
 
 
 
 ;;; Subscriptions
 (def-api-call :update (:subscription :id t) (plan coupon prorate trial-end card)
-              "https://stripe.com/api/docs#update_subscription")
+              "https://stripe.com/docs/api#update_subscription")
 
 (def-api-call :delete (:subscription :id t) (at-period-end)
-              "https://stripe.com/api/docs#cancel_subscription")
+              "https://stripe.com/docs/api#cancel_subscription")
 
 
 ;;; Plans
 (def-api-call :create (:plan :http-resource :plans :return-id t)
   (id amount currency interval name trial-period-days)
-  "https://stripe.com/api/docs#create_plan")
+  "https://stripe.com/docs/api#create_plan")
 
 (def-api-call :retrieve (:plan :id t) ()
-              "https://stripe.com/api/docs#retrieve_plan")
+              "https://stripe.com/docs/api#retrieve_plan")
 
 (def-api-call :delete (:plan :id t) ()
-              "https://stripe.com/api/docs#delete_plan")
+              "https://stripe.com/docs/api#delete_plan")
 
 (def-api-call :list :plans (count offset)
-              "https://stripe.com/api/docs#list_plans")
+              "https://stripe.com/docs/api#list_plans")
 
 
 
 ;;; Invoices
 (def-api-call :retrieve (:invoice :id t) ()
-              "https://stripe.com/api/docs#list_plans")
+              "https://stripe.com/docs/api#list_plans")
 
 (def-api-call :retrieve :upcoming-invoice (customer)
-              "https://stripe.com/api/docs#retrieve_customer_invoice")
+              "https://stripe.com/docs/api#retrieve_customer_invoice")
 
 (def-api-call :list :invoices (customer count offset)
-              "https://stripe.com/api/docs#list_customer_invoices")
+              "https://stripe.com/docs/api#list_customer_invoices")
 
 
 ;;; Invoice items
 (def-api-call :create (:invoice-item :http-resource :invoice-items :return-id t)
   (customer amount currency description)
-  "https://stripe.com/api/docs#create_invoiceitem")
+  "https://stripe.com/docs/api#create_invoiceitem")
 
 (def-api-call :retrieve (:invoice-item :id t) ()
-              "https://stripe.com/api/docs#retrieve_invoiceitem")
+              "https://stripe.com/docs/api#retrieve_invoiceitem")
 
 (def-api-call :update (:invoice-item :id t) (amount currency description)
-              "https://stripe.com/api/docs#update_invoiceitem")
+              "https://stripe.com/docs/api#update_invoiceitem")
 
 (def-api-call :delete (:invoice-item :id t) ()
-              "https://stripe.com/api/docs#delete_invoiceitem")
+              "https://stripe.com/docs/api#delete_invoiceitem")
 
 (def-api-call :list :invoice-items (customer count offset)
-              "https://stripe.com/api/docs#list_invoiceitems")
+              "https://stripe.com/docs/api#list_invoiceitems")
