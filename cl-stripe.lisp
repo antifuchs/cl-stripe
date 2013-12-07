@@ -185,93 +185,93 @@
 ;;; Charges
 (def-api-call :create (:charge :http-resource :charges :return-id t)
   (amount currency customer card description)
-  "https://stripe.com/api/docs#create_charge")
+  "https://stripe.com/docs/api#create_charge")
 
 (def-api-call :retrieve (:charge :id t) ()
-              "https://stripe.com/api/docs#retrieve_charge")
+              "https://stripe.com/docs/api#retrieve_charge")
 
 (def-api-call :refund (:charge :http-resource :refund :id t) (amount)
-              "https://stripe.com/api/docs#refund_charge")
+              "https://stripe.com/docs/api#refund_charge")
 
 (def-api-call :list :charges (customer count offset)
-              "https://stripe.com/api/docs#list_charges")
+              "https://stripe.com/docs/api#list_charges")
 
 
 ;;; Customers
 (def-api-call :create (:customer :http-resource :customers :return-id t)
   (card coupon email description plan trial-end)
-  "https://stripe.com/api/docs#create_customer")
+  "https://stripe.com/docs/api#create_customer")
 
 (def-api-call :retrieve (:customer :id t) ()
-              "https://stripe.com/api/docs#retrieve_customer")
+              "https://stripe.com/docs/api#retrieve_customer")
 
 (def-api-call :update (:customer :id t) (card coupon email description)
-              "https://stripe.com/api/docs#update_customer")
+              "https://stripe.com/docs/api#update_customer")
 
 (def-api-call :delete (:customer :id t) ()
-              "https://stripe.com/api/docs#delete_customer")
+              "https://stripe.com/docs/api#delete_customer")
 
 (def-api-call :list :customers (count offset)
-              "https://stripe.com/api/docs#list_customers")
+              "https://stripe.com/docs/api#list_customers")
 
 
 ;;; Card Tokens
 (def-api-call :create (:token :http-resource :tokens :return-id t) (card amount currency)
-              "https://stripe.com/api/docs#create_token")
+              "https://stripe.com/docs/api#create_token")
 
 (def-api-call :retrieve (:token :id t) ()
-              "https://stripe.com/api/docs#retrieve_token")
+              "https://stripe.com/docs/api#retrieve_token")
 
 
 
 ;;; Subscriptions
 (def-api-call :update (:subscription :id t) (plan coupon prorate trial-end card)
-              "https://stripe.com/api/docs#update_subscription")
+              "https://stripe.com/docs/api#update_subscription")
 
 (def-api-call :delete (:subscription :id t) (at-period-end)
-              "https://stripe.com/api/docs#cancel_subscription")
+              "https://stripe.com/docs/api#cancel_subscription")
 
 
 ;;; Plans
 (def-api-call :create (:plan :http-resource :plans :return-id t)
   (id amount currency interval name trial-period-days)
-  "https://stripe.com/api/docs#create_plan")
+  "https://stripe.com/docs/api#create_plan")
 
 (def-api-call :retrieve (:plan :id t) ()
-              "https://stripe.com/api/docs#retrieve_plan")
+              "https://stripe.com/docs/api#retrieve_plan")
 
 (def-api-call :delete (:plan :id t) ()
-              "https://stripe.com/api/docs#delete_plan")
+              "https://stripe.com/docs/api#delete_plan")
 
 (def-api-call :list :plans (count offset)
-              "https://stripe.com/api/docs#list_plans")
+              "https://stripe.com/docs/api#list_plans")
 
 
 
 ;;; Invoices
 (def-api-call :retrieve (:invoice :id t) ()
-              "https://stripe.com/api/docs#list_plans")
+              "https://stripe.com/docs/api#list_plans")
 
 (def-api-call :retrieve :upcoming-invoice (customer)
-              "https://stripe.com/api/docs#retrieve_customer_invoice")
+              "https://stripe.com/docs/api#retrieve_customer_invoice")
 
 (def-api-call :list :invoices (customer count offset)
-              "https://stripe.com/api/docs#list_customer_invoices")
+              "https://stripe.com/docs/api#list_customer_invoices")
 
 
 ;;; Invoice items
 (def-api-call :create (:invoice-item :http-resource :invoice-items :return-id t)
   (customer amount currency description)
-  "https://stripe.com/api/docs#create_invoiceitem")
+  "https://stripe.com/docs/api#create_invoiceitem")
 
 (def-api-call :retrieve (:invoice-item :id t) ()
-              "https://stripe.com/api/docs#retrieve_invoiceitem")
+              "https://stripe.com/docs/api#retrieve_invoiceitem")
 
 (def-api-call :update (:invoice-item :id t) (amount currency description)
-              "https://stripe.com/api/docs#update_invoiceitem")
+              "https://stripe.com/docs/api#update_invoiceitem")
 
 (def-api-call :delete (:invoice-item :id t) ()
-              "https://stripe.com/api/docs#delete_invoiceitem")
+              "https://stripe.com/docs/api#delete_invoiceitem")
 
 (def-api-call :list :invoice-items (customer count offset)
-              "https://stripe.com/api/docs#list_invoiceitems")
+              "https://stripe.com/docs/api#list_invoiceitems")
