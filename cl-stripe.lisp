@@ -15,6 +15,8 @@
     (:refund . "/v1/charges/~a/refund")
     (:customers . "/v1/customers")
     (:customer . "/v1/customers/~a")
+    (:card . "/v1/customers/~a/cards/~a")
+    (:cards . "/v1/customers/~a/cards")
     (:subscription . "/v1/customers/~a/subscription")
     (:invoices . "/v1/invoices")
     (:upcoming-invoice . "/v1/invoices/upcoming")
@@ -26,10 +28,11 @@
     (:plans . "/v1/plans")
     (:plan . "/v1/plans/~a")))
 
-(defun make-resource-url (name &optional id)
+(defun make-resource-url (name &optional id-args)
   (alexandria:when-let ((path (cdr (assoc name *resource-url-patterns*))))
-    (if id
-        (format nil "~a~@?" *endpoint* path id)
+    (if id-args
+        (apply #'format nil "~a~@?" *endpoint* path
+               (alexandria:ensure-list id-args))
         (concatenate 'string *endpoint* path))))
 
 (define-condition stripe-error (error)
@@ -71,9 +74,9 @@
   (deferror stripe-internal-error-503 503)
   (deferror stripe-internal-error-504 504))
 
-(defun issue-query (resource-name &key (api-key *default-api-key*) (method :get) id parameters)
+(defun issue-query (resource-name &key (api-key *default-api-key*) (method :get) id-args parameters)
   (multiple-value-bind (response-stream code headers url)
-      (drakma:http-request (make-resource-url resource-name id)
+      (drakma:http-request (make-resource-url resource-name (alexandria:ensure-list id-args))
                            :method method
                            :parameters parameters
                            :basic-authorization (list api-key "")
@@ -155,23 +158,25 @@
 
 (defmacro def-api-call (verb object-and-args (&rest parameters)
                         url)
-  (let* ((object (if (consp object-and-args)
-                     (car object-and-args)
-                     object-and-args))
-         (args (when (consp object-and-args)
-                 (cdr object-and-args))))
-    (destructuring-bind (&key (http-resource object) id (return-id id)) args
-      (let ((function-name (format-symbol :stripe "~a-~a" verb object)))
+  (destructuring-bind (object . args)
+      (alexandria:ensure-list object-and-args)
+    (destructuring-bind (&key (http-resource object) id (return-id id) card-id ) args
+      (let ((card-var (when card-id `(card-id)))
+            (function-name (format-symbol :stripe "~a-~a" verb object)))
         (assert (external-symbol-p function-name *package*))
        `(defun ,function-name
             (,@(when id `(id))
+             ,@card-var
              ,@(when parameters `(&rest parameters))
              &key ,@parameters
              (api-key *default-api-key*))
           ,url
           (declare (ignore ,@parameters))
           (let ((result
-                 (issue-query ,http-resource :api-key api-key ,@(when id `(:id id))
+                 (issue-query ,http-resource
+                              :api-key api-key
+                              ,@(when id
+                                  `(:id-args (list id ,@card-var)))
                               :method ,(cdr (assoc verb *verb-http-methods*))
                               ,@(when parameters
                                   `(:parameters (translate-request-parameters parameters))))))
@@ -213,6 +218,26 @@
 
 (def-api-call :list :customers (count offset)
               "https://stripe.com/docs/api#list_customers")
+
+;;; Cards
+(def-api-call :create (:card :id t :card-id t)
+  (number exp_month exp_year cvc name address_line1 address_line2
+   address_zip addres_state address_country)
+  "https://stripe.com/docs/api#create_card")
+
+(def-api-call :retrieve (:card :id t :card-id t) ()
+  "https://stripe.com/docs/api#retrieve_card")
+
+(def-api-call :update (:card :id t :card-id t)
+  (number exp_month exp_year cvc name address_line1 address_line2
+   address_zip addres_state address_country)
+  "https://stripe.com/docs/api#update_card")
+
+(def-api-call :delete (:card :id t :card-id t) ()
+  "https://stripe.com/docs/api#delete_card")
+
+(def-api-call :list (:cards :id t) ()
+  "https://stripe.com/docs/api#list_cards")
 
 
 ;;; Card Tokens

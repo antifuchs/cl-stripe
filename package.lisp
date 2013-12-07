@@ -20,6 +20,12 @@
            #:delete-customer
            #:list-customers
 
+           #:create-card
+           #:retrieve-card
+           #:update-card
+           #:delete-card
+           #:list-cards
+
            #:create-token
            #:retrieve-token
 
