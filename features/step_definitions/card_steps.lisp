@@ -1,3 +1,4 @@
+(declaim (special *random-card*))
 (When* #?{^I create a token for a random credit card$} ()
        (setf (var :card) *random-card*
              (var :amount) nil

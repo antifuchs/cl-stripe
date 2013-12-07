@@ -10,7 +10,7 @@
        1)))
 
 ;; TODO: generate the card number randomly
-(defvar *random-card* (list :number "4242424242424242" :exp_month "12" :exp_year "2012" :cvc "123"
+(defvar *random-card* (list :number "4242424242424242" :exp_month "12" :exp_year "2020" :cvc "123"
                      :name "Tester Oberloisl"
                      :address-line1 "555 Random Avenue" :address-line2 "Apt 9"
                      :address-zip "55959" :address-state "Ohai-o"
